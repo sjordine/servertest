@@ -1,0 +1,22 @@
+# Local secrets
+.env
+
+# Node / Vite
+node_modules/
+dist/
+
+# Java / Maven
+target/
+*.iml
+.idea/
+
+# Go / air
+tmp/
+
+# macOS / Xcode
+.DS_Store
+xcuserdata/
+DerivedData/
+
+# SQLTools scratch files
+*.session.sql

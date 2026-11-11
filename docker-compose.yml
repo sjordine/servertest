@@ -1,0 +1,84 @@
+# Dev stack. Start everything:  docker compose up --build -d
+# Shows up in Docker Desktop as one group: "servertest".
+name: servertest
+
+services:
+  gateway:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./server/gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - products
+      - stock
+      - web
+    restart: unless-stopped
+
+  products:
+    build:
+      context: ./server/products-service
+      target: dev
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/products_db
+      DB_USER: ${PRODUCTS_DB_USER}
+      DB_PASSWORD: ${PRODUCTS_DB_PASSWORD}
+    volumes:
+      - ./server/products-service:/app   # your code, live
+      - m2-cache:/root/.m2               # Maven dependency cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  stock:
+    build:
+      context: ./server/stock-service
+      target: dev
+    environment:
+      DATABASE_URL: postgres://${STOCK_DB_USER}:${STOCK_DB_PASSWORD}@postgres:5432/stock_db?sslmode=disable
+    volumes:
+      - ./server/stock-service:/app      # your code, live
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./client/frontend
+      target: dev
+    volumes:
+      - ./client/frontend:/app           # your code, live
+      - /app/node_modules                # keep the container's Linux node_modules
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PRODUCTS_DB_USER: ${PRODUCTS_DB_USER}
+      PRODUCTS_DB_PASSWORD: ${PRODUCTS_DB_PASSWORD}
+      STOCK_DB_USER: ${STOCK_DB_USER}
+      STOCK_DB_PASSWORD: ${STOCK_DB_PASSWORD}
+    ports:
+      - "5432:5432"                      # for DB tools on your Mac (TablePlus, DBeaver, psql)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./server/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # -h 127.0.0.1 forces TCP, which only opens after the init scripts finish
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  m2-cache:
+  go-mod-cache:
+  go-build-cache:

@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: products-service
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/products_db}
+    username: ${DB_USER:products}
+    password: ${DB_PASSWORD:products}
+
+management:
+  endpoints:
+    web:
+      # Reachable through the gateway as /api/products/actuator/health
+      base-path: /api/products/actuator
+      exposure:
+        include: health

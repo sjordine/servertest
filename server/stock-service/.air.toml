@@ -1,0 +1,16 @@
+# Hot reload for the Go service (https://github.com/air-verse/air).
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/stock ."
+bin = "./tmp/stock"
+include_ext = ["go"]
+exclude_dir = ["tmp"]
+delay = 200
+# File events don't cross the macOS -> Docker bind mount reliably, so poll.
+poll = true
+poll_interval = 500
+
+[log]
+time = true
