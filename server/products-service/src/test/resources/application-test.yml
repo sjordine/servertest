@@ -1,0 +1,12 @@
+# Integration tests run against the dev Postgres, isolated in their own schema.
+# Each test is @Transactional and rolls back, so the schema stays empty.
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/products_db}?currentSchema=products_test
+  flyway:
+    schemas: products_test
+    default-schema: products_test
+  jpa:
+    properties:
+      hibernate:
+        default_schema: products_test

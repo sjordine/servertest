@@ -8,6 +8,19 @@ spring:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/products_db}
     username: ${DB_USER:products}
     password: ${DB_PASSWORD:products}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # schema is owned by Flyway; Hibernate only checks it
+  flyway:
+    # products_db already holds the hello-world `greeting` table (from the init
+    # script), so baseline at version 0 to make Flyway still apply V1 onwards.
+    baseline-on-migrate: true
+    baseline-version: 0
+  jackson:
+    default-property-inclusion: non_null
+    generator:
+      write-bigdecimal-as-plain: true   # 10 instead of 1E+1
 
 management:
   endpoints:
