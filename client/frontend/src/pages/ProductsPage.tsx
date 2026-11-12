@@ -1,11 +1,13 @@
 import { Fragment, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api, Category, Package, Page, ProductSummary } from "../api";
+import { useCanWrite } from "../auth";
 import ErrorBox from "../components/ErrorBox";
 
 const PAGE_SIZE = 20;
 
 export default function ProductsPage() {
+  const canWrite = useCanWrite();
   // Filters live in the URL so they survive reloads and can be linked to (e.g. from Categories).
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";
@@ -70,7 +72,7 @@ export default function ProductsPage() {
           <h1>Products</h1>
           <p>Each product is one sellable item (SKU). Expand a row to see how it is packaged.</p>
         </div>
-        <Link className="button primary" to="/products/new">New product</Link>
+        {canWrite && <Link className="button primary" to="/products/new">New product</Link>}
       </header>
 
       <div className="toolbar">

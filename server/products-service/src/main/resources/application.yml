@@ -17,6 +17,17 @@ spring:
     # script), so baseline at version 0 to make Flyway still apply V1 onwards.
     baseline-on-migrate: true
     baseline-version: 0
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Keys are fetched from Keycloak's JWKS (internal URL) on first use and cached,
+          # so the service starts even while Keycloak is still booting.
+          jwk-set-uri: ${OAUTH_JWKS_URI:http://localhost:8180/auth/realms/servertest/protocol/openid-connect/certs}
+          # Only compared with the token's `iss` claim (no discovery call, since jwk-set-uri is set).
+          issuer-uri: ${OAUTH_ISSUER:http://localhost/auth/realms/servertest}
+          # Tokens must be issued for this service.
+          audiences: products-service
   jackson:
     default-property-inclusion: non_null
     generator:

@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, Category, Package, ProductDetail, suggestPackageCode, Unit } from "../api";
+import { useCanWrite } from "../auth";
 import ErrorBox from "../components/ErrorBox";
 
 type ProductDraft = { sku: string; description: string; categoryId: string; contentQuantity: string; contentUnitId: string };
@@ -97,7 +98,8 @@ export default function ProductFormPage() {
     }
   };
 
-  const readOnly = !!product?.archived;
+  const canWrite = useCanWrite();
+  const readOnly = !!product?.archived || !canWrite;
 
   return (
     <>
@@ -110,7 +112,7 @@ export default function ProductFormPage() {
           </h1>
           {product && <p>{product.description}</p>}
         </div>
-        {product && (
+        {product && canWrite && (
           <button onClick={archiveOrRestore}>{product.archived ? "Restore product" : "Archive product"}</button>
         )}
       </header>
@@ -159,13 +161,14 @@ export default function ProductFormPage() {
       </form>
 
       {product && (
-        <PackagesSection product={product} units={units} onChange={() => api.products.get(product.id).then(setProduct)} />
+        <PackagesSection product={product} units={units} canWrite={canWrite} onChange={() => api.products.get(product.id).then(setProduct)} />
       )}
     </>
   );
 }
 
-function PackagesSection({ product, units, onChange }: { product: ProductDetail; units: Unit[]; onChange: () => void }) {
+function PackagesSection({ product, units, canWrite, onChange }: { product: ProductDetail; units: Unit[]; canWrite: boolean; onChange: () => void }) {
+  const editable = canWrite && !product.archived;
   const [draft, setDraft] = useState<PackageDraft>(EMPTY_PACKAGE);
   const [editing, setEditing] = useState<{ id: string; description: string } | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -251,9 +254,9 @@ function PackagesSection({ product, units, onChange }: { product: ProductDetail;
                       <button onClick={() => setEditing(null)}>Cancel</button>
                     </>
                   ) : p.archived ? (
-                    !product.archived && <button onClick={() => run(() => api.packages.restore(product.id, p.id))}>Restore</button>
+                    editable && <button onClick={() => run(() => api.packages.restore(product.id, p.id))}>Restore</button>
                   ) : (
-                    !product.archived && (
+                    editable && (
                       <>
                         <button onClick={() => setEditing({ id: p.id, description: p.description ?? "" })}>Edit</button>
                         <button onClick={() => archive(p)}>Archive</button>
@@ -270,7 +273,7 @@ function PackagesSection({ product, units, onChange }: { product: ProductDetail;
         </table>
       </div>
 
-      {!product.archived && (
+      {editable && (
         <form className="panel form-grid" onSubmit={create}>
           <h3 className="span-2">Add package</h3>
           <fieldset className="span-2">

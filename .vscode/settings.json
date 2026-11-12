@@ -31,5 +31,6 @@
       "password": "postgres",
       "previewLimit": 50
     }
-  ]
+  ],
+  "python.terminal.useEnvFile": true
 }

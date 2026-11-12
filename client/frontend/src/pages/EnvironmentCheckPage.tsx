@@ -1,10 +1,14 @@
 import { useState } from "react";
+import { useAuth } from "react-oidc-context";
+import { getAccessToken } from "../auth";
 
 type Target = {
   key: string;
   label: string;
   path: string;
   route: string;
+  /** Send the signed-in user's access token. */
+  auth?: boolean;
 };
 
 const TARGETS: Target[] = [
@@ -20,6 +24,13 @@ const TARGETS: Target[] = [
     path: "/api/stock/hello",
     route: "Nginx → Go → stock_db",
   },
+  {
+    key: "auth",
+    label: "Auth (user → stock → products)",
+    path: "/api/stock/auth-check",
+    route: "Your token (stock:read) → Go validates it → calls products with its own service token",
+    auth: true,
+  },
 ];
 
 type Result =
@@ -28,10 +39,12 @@ type Result =
   | { state: "ok"; ms: number; body: unknown }
   | { state: "error"; ms: number; error: string };
 
-async function check(path: string): Promise<Result> {
+async function check(t: Target): Promise<Result> {
   const start = performance.now();
   try {
-    const res = await fetch(path);
+    const token = t.auth ? await getAccessToken() : undefined;
+    if (t.auth && !token) return { state: "error", ms: 0, error: "Sign in first: this check needs your access token." };
+    const res = await fetch(t.path, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
     const text = await res.text();
     const ms = Math.round(performance.now() - start);
     let body: unknown = text;
@@ -51,14 +64,16 @@ async function check(path: string): Promise<Result> {
 
 export default function EnvironmentCheckPage() {
   const [results, setResults] = useState<Record<string, Result>>({});
+  const auth = useAuth();
+  const signingIn = auth.isLoading || !!auth.activeNavigator;
 
   const run = async (t: Target) => {
     setResults((r) => ({ ...r, [t.key]: { state: "loading" } }));
-    const result = await check(t.path);
+    const result = await check(t);
     setResults((r) => ({ ...r, [t.key]: result }));
   };
 
-  const runAll = () => TARGETS.forEach(run);
+  const runAll = () => TARGETS.filter((t) => !(t.auth && signingIn)).forEach(run);
 
   return (
     <>
@@ -79,8 +94,8 @@ export default function EnvironmentCheckPage() {
                   <code>GET {t.path}</code>
                   <p className="route">{t.route}</p>
                 </div>
-                <button onClick={() => run(t)} disabled={r.state === "loading"}>
-                  {r.state === "loading" ? "Checking…" : "Check"}
+                <button onClick={() => run(t)} disabled={r.state === "loading" || (t.auth && signingIn)}>
+                  {r.state === "loading" ? "Checking…" : t.auth && signingIn ? "Signing in…" : "Check"}
                 </button>
               </div>
               <Status result={r} />

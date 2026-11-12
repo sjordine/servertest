@@ -1,4 +1,7 @@
 // Typed client for the products service (through the gateway at /api/products).
+// Every call carries the signed-in user's access token (Authorization: Bearer ...).
+
+import { getAccessToken, userManager } from "./auth";
 
 export type UnitRef = { id: string; code: string; name: string };
 export type Unit = UnitRef & { archived: boolean };
@@ -61,11 +64,21 @@ export class ApiError extends Error {
 const BASE = "/api/products";
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const token = await getAccessToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const res = await fetch(BASE + path, {
     method,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  if (res.status === 401) {
+    // Missing or expired session: go through the Keycloak login again.
+    void userManager.signinRedirect({ redirect_uri: window.location.href }); // come back to this page
+    throw new ApiError(401, "Your session has expired. Redirecting to sign in…");
+  }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
   let data: any = undefined;

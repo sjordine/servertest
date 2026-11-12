@@ -14,6 +14,22 @@ Endpoints available now:
 - `GET /api/products/hello`
 - `GET /api/stock/hello`
 
+## Login (OpenID Connect)
+Every API except `/hello` needs an access token. The app signs in through Keycloak with **Authorization Code + PKCE**, the standard flow for native apps. [AppAuth-iOS](https://github.com/openid/AppAuth-iOS) does the work:
+
+| Setting | Value |
+|---|---|
+| Issuer (discovery) | `<base URL>/auth/realms/servertest` |
+| Client ID | `ios` (public client, no secret) |
+| Redirect URI | `servertest://oauth/callback`. Register the `servertest` URL scheme in the app target. |
+| Scopes | `openid profile products:read products:write stock:read`, plus `offline_access` to stay signed in across launches |
+
+Send the token on each request as `Authorization: Bearer <access token>`. Store the refresh token in the Keychain, and let AppAuth's `performAction(freshTokens:)` renew the 5-minute access token.
+
+Dev users: `alice` / `alice` (editor) and `bob` / `bob` (read-only).
+
+Note: on a physical iPhone, the base URL is your Mac's LAN IP, but Keycloak issues tokens for `http://localhost/auth/...` (`KEYCLOAK_HOSTNAME` in `.env`). To test on a device, set `KEYCLOAK_HOSTNAME=http://<your-Mac-LAN-IP>/auth`, then restart keycloak, products and stock (`docker compose up -d`).
+
 The gateway serves plain HTTP, so add this to `Info.plist`:
 
 ```xml

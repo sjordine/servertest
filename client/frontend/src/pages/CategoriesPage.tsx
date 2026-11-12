@@ -1,12 +1,14 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, Category } from "../api";
+import { useCanWrite } from "../auth";
 import ErrorBox from "../components/ErrorBox";
 
 type Draft = { name: string; description: string };
 const EMPTY: Draft = { name: "", description: "" };
 
 export default function CategoriesPage() {
+  const canWrite = useCanWrite();
   const [categories, setCategories] = useState<Category[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY);
@@ -46,6 +48,7 @@ export default function CategoriesPage() {
         <p>Group related products, e.g. "Whole milk" for the 1 l and the 0.5 l bottles.</p>
       </header>
 
+      {canWrite && (
       <form className="panel inline-form" onSubmit={create}>
         <label>
           Name
@@ -59,6 +62,7 @@ export default function CategoriesPage() {
         </label>
         <button className="primary" type="submit">Add category</button>
       </form>
+      )}
 
       <ErrorBox error={error} />
 
@@ -95,7 +99,7 @@ export default function CategoriesPage() {
                   </td>
                   <td>{c.archived ? <span className="badge">archived</span> : <span className="badge ok">active</span>}</td>
                   <td className="actions">
-                    {c.archived ? (
+                    {!canWrite ? null : c.archived ? (
                       <button onClick={() => run(() => api.categories.restore(c.id))}>Restore</button>
                     ) : (
                       <>

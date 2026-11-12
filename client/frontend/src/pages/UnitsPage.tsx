@@ -1,11 +1,13 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api, Unit } from "../api";
+import { useCanWrite } from "../auth";
 import ErrorBox from "../components/ErrorBox";
 
 type Draft = { code: string; name: string };
 const EMPTY: Draft = { code: "", name: "" };
 
 export default function UnitsPage() {
+  const canWrite = useCanWrite();
   const [units, setUnits] = useState<Unit[]>([]);
   const [showArchived, setShowArchived] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY);
@@ -45,6 +47,7 @@ export default function UnitsPage() {
         <p>Units used to describe product content and package quantities (un, kg, l…).</p>
       </header>
 
+      {canWrite && (
       <form className="panel inline-form" onSubmit={create}>
         <label>
           Code
@@ -58,6 +61,7 @@ export default function UnitsPage() {
         </label>
         <button className="primary" type="submit">Add unit</button>
       </form>
+      )}
 
       <ErrorBox error={error} />
 
@@ -91,7 +95,7 @@ export default function UnitsPage() {
                   <td>{u.name}</td>
                   <td>{u.archived ? <span className="badge">archived</span> : <span className="badge ok">active</span>}</td>
                   <td className="actions">
-                    {u.archived ? (
+                    {!canWrite ? null : u.archived ? (
                       <button onClick={() => run(() => api.units.restore(u.id))}>Restore</button>
                     ) : (
                       <>
